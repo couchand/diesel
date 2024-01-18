@@ -22,6 +22,7 @@ pub struct User {
 #[aykroyd(row(User), text = "SELECT id, name, hair_color FROM users")]
 pub struct GetAllUsers;
 
+#[cfg(not(feature = "mysql"))]
 #[derive(Query)]
 #[aykroyd(row(UserAndPost), text = "
     SELECT user.id, user.name, user.hair_color,
@@ -29,6 +30,17 @@ pub struct GetAllUsers;
     FROM users AS user
     LEFT OUTER JOIN posts AS post ON post.user_id = user.id
     WHERE hair_color = $1
+")]
+pub struct GetUserAndPostByHairColor<'a>(&'a str);
+
+#[cfg(feature = "mysql")]
+#[derive(Query)]
+#[aykroyd(row(UserAndPost), text = "
+    SELECT user.id, user.name, user.hair_color,
+        post.id, post.user_id, post.title, post.body
+    FROM users AS user
+    LEFT OUTER JOIN posts AS post ON post.user_id = user.id
+    WHERE hair_color = ?
 ")]
 pub struct GetUserAndPostByHairColor<'a>(&'a str);
 
@@ -51,7 +63,14 @@ pub struct NewUsers {
 
 #[cfg(not(feature = "postgres"))]
 #[derive(Statement)]
-#[aykroyd(text = "INSERT INTO users (name, hair_color) VALUES ($1, $2)")]
+#[cfg_attr(
+    not(feature = "mysql"),
+    aykroyd(text = "INSERT INTO users (name, hair_color) VALUES ($1, $2)")
+)]
+#[cfg_attr(
+    feature = "mysql",
+    aykroyd(text = "INSERT INTO users (name, hair_color) VALUES (?, ?)")
+)]
 pub struct NewUser<'a> {
     pub name: String,
     pub hair_color: Option<&'a str>,
@@ -95,7 +114,8 @@ fn connection() -> TestConnection {
     let connection_url = dotenvy::var("MYSQL_DATABASE_URL")
         .or_else(|_| dotenvy::var("DATABASE_URL"))
         .expect("DATABASE_URL must be set in order to run tests");
-    let mut conn = TestConnection::new(&connection_url).unwrap();
+    let opts = rust_mysql::Opts::from_url(&connection_url).unwrap();
+    let mut conn = TestConnection::new(opts).unwrap();
 
     #[derive(Statement)]
     #[aykroyd(text = "SET FOREIGN_KEY_CHECKS = ?")]
