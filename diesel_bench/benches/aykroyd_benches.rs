@@ -25,10 +25,10 @@ pub struct GetAllUsers;
 #[cfg(not(feature = "mysql"))]
 #[derive(Query)]
 #[aykroyd(row(UserAndPost), text = "
-    SELECT user.id, user.name, user.hair_color,
-        post.id, post.user_id, post.title, post.body
-    FROM users AS user
-    LEFT OUTER JOIN posts AS post ON post.user_id = user.id
+    SELECT users.id, users.name, users.hair_color,
+        posts.id, posts.user_id, posts.title, posts.body
+    FROM users
+    LEFT OUTER JOIN posts ON posts.user_id = users.id
     WHERE hair_color = $1
 ")]
 pub struct GetUserAndPostByHairColor<'a>(&'a str);
@@ -36,10 +36,10 @@ pub struct GetUserAndPostByHairColor<'a>(&'a str);
 #[cfg(feature = "mysql")]
 #[derive(Query)]
 #[aykroyd(row(UserAndPost), text = "
-    SELECT user.id, user.name, user.hair_color,
-        post.id, post.user_id, post.title, post.body
-    FROM users AS user
-    LEFT OUTER JOIN posts AS post ON post.user_id = user.id
+    SELECT users.id, users.name, users.hair_color,
+        posts.id, posts.user_id, posts.title, posts.body
+    FROM users
+    LEFT OUTER JOIN posts ON posts.user_id = users.id
     WHERE hair_color = ?
 ")]
 pub struct GetUserAndPostByHairColor<'a>(&'a str);
