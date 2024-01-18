@@ -76,6 +76,52 @@ pub struct NewUser<'a> {
     pub hair_color: Option<&'a str>,
 }
 
+struct BatchInsert<'a>(Vec<NewUser<'a>>);
+
+impl<'a> aykroyd::query::QueryText for BatchInsert<'a> {
+    fn query_text(&self) -> String {
+        let mut s = String::from("INSERT INTO users (name, hair_color) VALUES ");
+        let mut needs_comma = false;
+
+        for _ in 0..self.0.len() {
+            if needs_comma {
+                s.push(',');
+            } else {
+                needs_comma = true;
+            }
+
+            s.push_str("(?, ?)");
+        }
+
+        s
+    }
+}
+
+impl<'a, C: aykroyd::client::Client> aykroyd::query::ToParams<C> for BatchInsert<'a>
+where
+    String: aykroyd::client::ToParam<C>,
+    Option<&'a str>: aykroyd::client::ToParam<C>,
+{
+    fn to_params(&self) -> Option<Vec<C::Param<'_>>> {
+        use aykroyd::client::ToParam;
+        let mut res = Vec::with_capacity(self.0.len());
+
+        for p in &self.0 {
+            res.push(p.name.to_param());
+            res.push(p.hair_color.to_param());
+        }
+
+        Some(res)
+    }
+}
+
+impl<'a, C: aykroyd::client::Client> aykroyd::Statement<C> for BatchInsert<'a>
+where
+    String: aykroyd::client::ToParam<C>,
+    Option<&'a str>: aykroyd::client::ToParam<C>,
+{
+}
+
 #[derive(FromRow)]
 #[aykroyd(by_index)]
 pub struct Post {
@@ -217,13 +263,16 @@ fn insert_users<F: Fn(usize) -> Option<&'static str>, const N: usize>(
         name: String::new(),
         hair_color: None,
     };
+    let mut new_users = vec![];
 
     for idx in 0..N {
-        new_user.name = format!("User {}", idx);
-        new_user.hair_color = hair_color_init(idx);
-
-        conn.execute(&new_user).unwrap();
+        new_users.push(NewUser {
+            name: format!("User {}", idx),
+            hair_color: hair_color_init(idx),
+        });
     }
+
+    conn.execute(&BatchInsert(new_users)).unwrap();
 }
 
 pub fn bench_trivial_query(b: &mut Bencher, size: usize) {
