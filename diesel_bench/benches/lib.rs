@@ -1,6 +1,8 @@
 #[cfg(all(feature = "diesel-async", any(feature = "postgres", feature = "mysql")))]
 mod diesel_async_benches;
 mod diesel_benches;
+#[cfg(feature = "aykroyd")]
+mod aykroyd_benches;
 #[cfg(all(feature = "mysql", feature = "rust_mysql"))]
 mod mysql_benches;
 #[cfg(all(feature = "postgres", feature = "rust_postgres"))]
@@ -94,6 +96,18 @@ fn bench_trivial_query(c: &mut CriterionType) {
             size,
             |b, i| crate::diesel_async_benches::bench_trivial_query_raw(b, *i),
         );
+
+        #[cfg(feature = "aykroyd")]
+        group.bench_with_input(BenchmarkId::new("aykroyd", size), size, |b, i| {
+            crate::aykroyd_benches::bench_trivial_query(b, *i);
+        });
+
+/*
+        #[cfg(feature = "aykroyd")]
+        group.bench_with_input(BenchmarkId::new("aykroyd_by_name", size), size, |b, i| {
+            crate::aykroyd_benches::bench_trivial_query_by_name(b, *i);
+        });
+        */
 
         #[cfg(feature = "rustorm")]
         group.bench_with_input(BenchmarkId::new("rustorm", size), size, |b, i| {
@@ -198,6 +212,18 @@ fn bench_medium_complex_query(c: &mut CriterionType) {
             size,
             |b, i| crate::diesel_async_benches::bench_medium_complex_query_queryable_by_name(b, *i),
         );
+
+        #[cfg(feature = "aykroyd")]
+        group.bench_with_input(BenchmarkId::new("aykroyd", size), size, |b, i| {
+            crate::aykroyd_benches::bench_medium_complex_query(b, *i);
+        });
+
+/*
+        #[cfg(feature = "aykroyd")]
+        group.bench_with_input(BenchmarkId::new("aykroyd_by_name", size), size, |b, i| {
+            crate::aykroyd_benches::bench_medium_complex_query_by_name(b, *i);
+        });
+*/
 
         #[cfg(feature = "quaint")]
         group.bench_with_input(BenchmarkId::new("quaint", size), size, |b, i| {
@@ -341,6 +367,11 @@ fn bench_insert(c: &mut CriterionType) {
         #[cfg(feature = "sqlx-bench")]
         group.bench_with_input(BenchmarkId::new("sqlx", size), size, |b, i| {
             crate::sqlx_benches::bench_insert(b, *i);
+        });
+
+        #[cfg(feature = "aykroyd")]
+        group.bench_with_input(BenchmarkId::new("aykroyd", size), size, |b, i| {
+            crate::aykroyd_benches::bench_insert(b, *i);
         });
 
         #[cfg(feature = "quaint")]
