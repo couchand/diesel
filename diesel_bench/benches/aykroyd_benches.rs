@@ -76,8 +76,10 @@ pub struct NewUser<'a> {
     pub hair_color: Option<&'a str>,
 }
 
+#[cfg(not(feature = "postgres"))]
 struct BatchInsert<'a>(Vec<NewUser<'a>>);
 
+#[cfg(not(feature = "postgres"))]
 impl<'a> aykroyd::query::QueryText for BatchInsert<'a> {
     fn query_text(&self) -> String {
         let mut s = String::from("INSERT INTO users (name, hair_color) VALUES ");
@@ -97,6 +99,7 @@ impl<'a> aykroyd::query::QueryText for BatchInsert<'a> {
     }
 }
 
+#[cfg(not(feature = "postgres"))]
 impl<'a, C: aykroyd::client::Client> aykroyd::query::ToParams<C> for BatchInsert<'a>
 where
     String: aykroyd::client::ToParam<C>,
